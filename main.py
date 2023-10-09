@@ -153,7 +153,14 @@ def getEndedDayEvents(data="", campionato=""):
         j = json.loads(r.text)
         ended_json['results'] = ended_json['results'] + j['results']
 
-    return ended_json
+    ended_json_filtred = []
+    ids = []
+    for m in ended_json["results"]:
+        ids.append(int(m['league']["id"]))
+        if int(m['league']["id"]) in leagues:
+            ended_json_filtred.append(m)
+
+    return ended_json_filtred
 
 
 def getDayEvents(data="", campionato=""):
@@ -180,7 +187,16 @@ def getDayEvents(data="", campionato=""):
         j = json.loads(r.text)
         upcoming_json['results'] = upcoming_json['results'] + j['results']
 
-    return upcoming_json
+    #print(upcoming_json["results"])
+
+    upcoming_json_filtred = []
+    ids = []
+    for m in upcoming_json["results"]:
+        ids.append(int(m['league']["id"]))
+        if int(m['league']["id"]) in leagues:
+            upcoming_json_filtred.append(m)
+
+    return upcoming_json_filtred
 
 
 def getHistoryForDayEvent(idEvent, home_team, away_team):
@@ -592,28 +608,32 @@ if __name__ == '__main__':
     sheet.cell(row=1, column=12).value = 'Statistiche casa/ospite se Stato Forma = Under'
 
     data_da_analizzare = ""
-    try:
-        data_da_analizzare = sys.argv[1]
-        print(data_da_analizzare)
-    except Exception as e:
-        print(e)
-
     date_format = "%Y%m%d"
+
+    print("len", len(sys.argv))
+    if len(sys.argv) > 1:
+        data_da_analizzare = sys.argv[1]
+    else:
+        data_da_analizzare = now.strftime(date_format)
+    print("print data", data_da_analizzare)
 
     # Convert string to datetime using strptime
     date_obj = datetime.datetime.strptime(data_da_analizzare, date_format)
-    print(date_obj)
+    print(date_obj.date())
 
-    if date_obj < now:
+    if date_obj.date() < now.date():
+        print("Ended")
         json_of_the_day = getEndedDayEvents(str(data_da_analizzare))
     else:
+        print("Incoming")
         json_of_the_day = getDayEvents(str(data_da_analizzare))
 
-    #TODO: ATTENZIONE AL FORMATO! DEVE ESSERE ANNOMESEGIORNO ES: 20230819
-    #json_of_the_day = getDayEvents(str(data_da_analizzare))
+    # TODO: ATTENZIONE AL FORMATO! DEVE ESSERE ANNOMESEGIORNO ES: 20230819
+    # json_of_the_day = getDayEvents(str(data_da_analizzare))
+    print(json_of_the_day)
 
     x = 0
-    for match in json_of_the_day['results']:
+    for match in json_of_the_day:
         home_team = match['home']['name']
         home_team_id = match['home']['id']
         away_team = match['away']['name']
@@ -630,12 +650,13 @@ if __name__ == '__main__':
         away_points, away_pos = getPointTeam(match_league_id, away_team_id)
 
         print(match['id'], match_teams, match_date, match_hour, match_league, match_nation, match_league_id,
-              "current_round:", match_current_round, "home_pos:", home_pos, "home_point:", home_points, "away_pos:", away_pos, "away_points:", away_points)
+              "current_round:", match_current_round, "home_pos:", home_pos, "home_point:", home_points, "away_pos:",
+              away_pos, "away_points:", away_points)
 
-         #if match_current_round >= 5:
+        # if match_current_round >= 5:
 
         getOddMatch(match['id'])
-        #favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, vittorieOspite, overOspite, numero_precedenti
+        # favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, vittorieOspite, overOspite, numero_precedenti
         favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, overOspite, numero_precedenti = getHistoryForDayEvent(
             match['id'], home_team, away_team)
 
@@ -652,5 +673,35 @@ if __name__ == '__main__':
         #    print("############## MENO DI 5 PARITE: #"+str(getNumberOfDayPlayed(match_league_id)))
 
         risultati.save('Risultati.xlsx')
+
+
+
+
+
+
+
+
+
+def appoggio_codice_test():
+    data_da_analizzare = ""
+    date_format = "%Y%m%d"
+
+    print("len", len(sys.argv))
+    if len(sys.argv) > 1:
+        data_da_analizzare = sys.argv[1]
+    else:
+        data_da_analizzare = now.strftime(date_format)
+    print("print data", data_da_analizzare)
+
+    # Convert string to datetime using strptime
+    date_obj = datetime.datetime.strptime(data_da_analizzare, date_format)
+    print(date_obj.date())
+
+    if date_obj.date() < now.date():
+        print("Ended")
+        json_of_the_day = getEndedDayEvents(str(data_da_analizzare))
+    else:
+        print("Incoming")
+        json_of_the_day = getDayEvents(str(data_da_analizzare))
 
 
