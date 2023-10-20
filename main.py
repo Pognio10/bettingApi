@@ -14,14 +14,14 @@ soglia1 = 0
 soglia2 = 0
 soglia3 = 0
 soglia4 = 0
-soglia5 = 0
-soglia6 = 0
-soglia7 = 0
-soglia8 = 0
+soglia5 = 0.6
+soglia6 = 0.6
+soglia7 = 0.6
+soglia8 = 0.6
 soglia9 = 0
 soglia10 = 0
-soglia13 = 0
-soglia14 = 0
+soglia13 = 0.5
+soglia14 = 0.5
 soglia15 = 0
 soglia16 = 0
 soglia17 = 0
@@ -44,6 +44,7 @@ soglia33 = 0
 soglia34 = 0
 soglia35 = 0
 soglia36 = 0
+sogliatot = 0
 
 TOKEN_ID = '157136-1N4kvJex2PbVqB'
 SPORT_ID = '1'
@@ -117,7 +118,7 @@ def getPointTeam(id_league, id_team):
     current_points = 0
     current_position = 0
     try:
-        if len(league_json['results'][0]['overall']['tables']) > 1:
+        if len(league_json['results'][0]['overall']['tables']) > 0:
             table = league_json['results'][0]['overall']['tables'][0]['rows']
             for team in table:
                 if team['team']['id'] == id_team:
@@ -235,14 +236,15 @@ def h2h(h2h_json, home_team, away_team, favorita, favoritaNome):
 
     for i in range(0, len(h2h_json)):
         if h2h_json[i]['home']['name'] == home_team:
-            home_score += int(str(h2h_json[i]['ss']).split("-")[0])
-            away_score += int(str(h2h_json[i]['ss']).split("-")[1])
+            home_score = int(str(h2h_json[i]['ss']).split("-")[0])
+            away_score = int(str(h2h_json[i]['ss']).split("-")[1])
         else:
-            home_score += int(str(h2h_json[i]['ss']).split("-")[1])
-            away_score += int(str(h2h_json[i]['ss']).split("-")[0])
+            home_score = int(str(h2h_json[i]['ss']).split("-")[1])
+            away_score = int(str(h2h_json[i]['ss']).split("-")[0])
 
         ris = home_score + away_score
-
+ 
+    
         if home_score > 0 and away_score > 0:
             precedentiGoal = precedentiGoal + 1
             totalePrec = totalePrec + 1
@@ -259,6 +261,13 @@ def h2h(h2h_json, home_team, away_team, favorita, favoritaNome):
             esito1 = esito1 + 1
         if home_score < away_score:
             esito2 = esito2 + 1
+            
+        # print(home_team)
+        # print(home_score)
+        # print(away_team)
+        # print(away_score)
+        # print('ris')
+        # print(ris)
 
         if home_team == favoritaNome and home_score > away_score:
             vittoriaF = vittoriaF + 1
@@ -292,22 +301,32 @@ def h2h(h2h_json, home_team, away_team, favorita, favoritaNome):
         res_precedenti_string += "NoGoal \t"
     if esito1 > soglia9:
         # print('Segno 1')
-        res_precedenti_string += "1 \t"
+        res_precedenti_string += "1X \t"
     if esito2 > soglia10:
         # print('Segno 2')
-        res_precedenti_string += "2 \t"
+        res_precedenti_string += "X2 \t"
+        
+    # print('Ci sono')
+    # print(favorita)
+    # print(favoritaNome)  
+    # print(vittoriaF)  
+    try:   
+        vittoriaF = vittoriaF / totalePrec
+    except Exception as e:
+        print("ERRORE precedenti division")
+        print(e)
 
     if favorita == 1:
         if vittoriaF > soglia13:
             # print('Segno 1')
-            res_precedenti_string += "1 \t"
+            res_precedenti_string += "1X da favorita \t"
     if favorita == 2:
         if vittoriaF > soglia14:
             # print('Segno 2')
-            res_precedenti_string += "2 \t"
+            res_precedenti_string += "X2 da favorita \t"
     else:
         # print('Nessuna Favorita Calcolata')
-        res_precedenti_string += "Nessuna Favorita Calcolata \t"
+        res_precedenti_string += "\t"
 
     # print("############# RISULTATI PRECEDENTI ##########################")
     # print(res_precedenti_string)
@@ -360,48 +379,15 @@ def statoForma(homeJs, awayJs, h2hJs, homeTeam, awayTeam):
             elif home_goal == away_goal:
                 away_forma += 1
 
-
-    # for j in homeJs:
-    #     if j['home']['name'] == homeTeam:
-    #         home_goal = j["ss"].split('-')[0]
-    #         away_goal = j["ss"].split('-')[1]
-    #         if home_goal > away_goal:
-    #             home_forma += 3
-    #         elif home_goal == away_goal:
-    #             home_forma += 1
-    #     elif j['away']['name'] == homeTeam:
-    #         home_goal = j["ss"].split('-')[0]
-    #         away_goal = j["ss"].split('-')[1]
-    #         if home_goal < away_goal:
-    #             home_forma += 3
-    #         elif home_goal == away_goal:
-    #             home_forma += 1
-    #
-    # for x in awayJs:
-    #     if x['home']['name'] == awayTeam:
-    #         home_goal = x["ss"].split('-')[0]
-    #         away_goal = x["ss"].split('-')[1]
-    #         if home_goal > away_goal:
-    #             away_forma += 3
-    #         elif home_goal == away_goal:
-    #             away_forma += 1
-    #     elif x['away']['name'] == homeTeam:
-    #         home_goal = x["ss"].split('-')[0]
-    #         away_goal = x["ss"].split('-')[1]
-    #         if home_goal < away_goal:
-    #             away_forma += 3
-    #         elif home_goal == away_goal:
-    #             away_forma += 1
-
     favorita = 0
-    favoritaNome = 'nessuna Favorita'
+    favoritaNome = ''
     res_string = ""
     statoFormaUnder = 0
 
     if (home_forma - away_forma) > soglia3:
-        res_string += "1/Over \t"
+        res_string += "1X Over \t"
     elif (away_forma - home_forma) > soglia4:
-        res_string += "2/Over \t"
+        res_string += "X2 Over \t"
     else:
         statoFormaUnder = 1
         res_string += "Under  \t"
@@ -475,13 +461,20 @@ def home_res(home_j, home_team, favorita):
             print('Casa 5 vittorie')
         if sconfitteCasa == 0:
             print('Casa non perde da 5')
+    # Calcolo differenza punti (da sistemare)
+    # if vittorieCasa > soglia15 and sconfitteCasa < soglia16 and sconfitteOspite < soglia17 and puntiCasa - puntiOspite > sogliatot:
+    #         res += "1x  \t"
 
     # Inserimento if se favorita = 2
     if favorita == 2:
         if sconfitteCasa == 5:
             print('Casa 5 sconfitte')
         if vittorieCasa == 0:
-            print('Casa non vince da 5')
+            print('Casa non vince da 5') 
+    # Calcolo differenza punti (da sistemare)
+    # if vittorieOspite > soglia25 and sconfitteOspite < soglia26 and sconfitteCasa < soglia27 and puntiOspite - puntiCasa > sogliatot:
+    #         res += "x2  \t"
+    
 
     return partite, vittorieCasa, sconfitteCasa, overCasa, underCasa
 
@@ -606,7 +599,15 @@ if __name__ == '__main__':
     sheet.cell(row=1, column=10).value = 'Statistiche casa/ospite se Favorita = squadra 1'
     sheet.cell(row=1, column=11).value = 'Statistiche casa/ospite se Favorita = squadra 2'
     sheet.cell(row=1, column=12).value = 'Statistiche casa/ospite se Stato Forma = Under'
+    sheet.cell(row=1, column=13).value = 'Risultato'
+    sheet.cell(row=1, column=14).value = 'Posizione Squadra Casa'
+    sheet.cell(row=1, column=15).value = 'Punti Squadra Casa'
+    sheet.cell(row=1, column=16).value = 'Posizione Squadra Ospite'
+    sheet.cell(row=1, column=17).value = 'Punti Squadra Ospite'
 
+
+    
+    
     data_da_analizzare = ""
     date_format = "%Y%m%d"
 
@@ -646,10 +647,15 @@ if __name__ == '__main__':
         match_nation = match['league']['cc']
         match_current_round = getNumberOfDayPlayed(match_league_id)
 
+        try:
+            match_result = match['ss']
+        except Exception as e:
+            match_result = 'not set'
+
         home_points, home_pos = getPointTeam(match_league_id, home_team_id)
         away_points, away_pos = getPointTeam(match_league_id, away_team_id)
 
-        print(match['id'], match_teams, match_date, match_hour, match_league, match_nation, match_league_id,
+        print(match['id'], match_teams, match_result, match_date, match_hour, match_league, match_nation, match_league_id,
               "current_round:", match_current_round, "home_pos:", home_pos, "home_point:", home_points, "away_pos:",
               away_pos, "away_points:", away_points)
 
@@ -668,40 +674,8 @@ if __name__ == '__main__':
              statisticheCasaOspite(favorita, statoFormaUnder, vittorieCasa, vittorieOspite, sconfitteCasa,
                                    sconfitteOspite, underCasa, underOspite, overCasa, overOspite),
              statisticheCasaOspite(favorita, statoFormaUnder, vittorieCasa, vittorieOspite, sconfitteCasa,
-                                   sconfitteOspite, underCasa, underOspite, overCasa, overOspite)])
+                                   sconfitteOspite, underCasa, underOspite, overCasa, overOspite), match_result, home_pos, home_points, away_pos, away_points])
 
         #    print("############## MENO DI 5 PARITE: #"+str(getNumberOfDayPlayed(match_league_id)))
 
         risultati.save('Risultati.xlsx')
-
-
-
-
-
-
-
-
-
-def appoggio_codice_test():
-    data_da_analizzare = ""
-    date_format = "%Y%m%d"
-
-    print("len", len(sys.argv))
-    if len(sys.argv) > 1:
-        data_da_analizzare = sys.argv[1]
-    else:
-        data_da_analizzare = now.strftime(date_format)
-    print("print data", data_da_analizzare)
-
-    # Convert string to datetime using strptime
-    date_obj = datetime.datetime.strptime(data_da_analizzare, date_format)
-    print(date_obj.date())
-
-    if date_obj.date() < now.date():
-        print("Ended")
-        json_of_the_day = getEndedDayEvents(str(data_da_analizzare))
-    else:
-        print("Incoming")
-        json_of_the_day = getDayEvents(str(data_da_analizzare))
-
-
