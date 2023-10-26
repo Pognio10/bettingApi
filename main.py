@@ -143,7 +143,7 @@ def getEndedDayEvents(data="", campionato=""):
 
     response = requests.get(
         'https://api.b365api.com/v3/events/ended?sport_id=' + SPORT_ID + '&token=' + TOKEN_ID + '&page=1&skip_esports=SI&day=' + now_str + '&cc='+campionato)
-    print('https://api.b365api.com/v3/events/ended?sport_id=' + SPORT_ID + '&token=' + TOKEN_ID + '&page=1&skip_esports=SI&day=' + now_str + '&cc='+campionato)
+    # print('https://api.b365api.com/v3/events/ended?sport_id=' + SPORT_ID + '&token=' + TOKEN_ID + '&page=1&skip_esports=SI&day=' + now_str + '&cc='+campionato)
     ended_json = json.loads(response.text)
     number_of_page = math.ceil(ended_json['pager']['total'] / ended_json['pager']['per_page'])
 
@@ -200,7 +200,7 @@ def getDayEvents(data="", campionato=""):
     return upcoming_json_filtred
 
 
-def getHistoryForDayEvent(idEvent, home_team, away_team):
+def getHistoryForDayEvent(idEvent, home_team, away_team, id_league):
     response = requests.get('https://api.b365api.com/v1/event/history?token=' + TOKEN_ID + '&event_id=' + idEvent)
     j = json.loads(response.text)
 
@@ -210,13 +210,29 @@ def getHistoryForDayEvent(idEvent, home_team, away_team):
     except Exception as e:
         print(e)
 
+    json_home = []
+    json_away = []
+
+    for home_match in j['results']['home']:
+        if home_match['league']['id'] == id_league:
+            json_home.append(home_match)
+
+    for away_match in j['results']['away']:
+        if away_match['league']['id'] == id_league:
+            json_away.append(away_match)
+
+
+    if len(json_home) > len(json_away):
+        json_home = json_home[:len(json_away)]
+    elif len(json_away) > len(json_home):
+        json_away = json_away[:len(json_home)]
+
+
     favorita, favoritaNome, statoFormaUnder, res_string = statoForma(j['results']['home'], j['results']['away'],
                                                                      j['results']['h2h'], home_team, away_team)
     precedenti_string = h2h(j['results']['h2h'], home_team, away_team, favorita, favoritaNome)
-    casa, vittorieCasa, sconfitteCasa, overCasa, underCasa = home_res(j['results']['home'], home_team, favorita)
-    trasferta, vittorieOspite, sconfitteOspite, underOspite, overOspite = ris_away(j['results']['away'],
-                                                                                                   away_team, favorita)
-
+    casa, vittorieCasa, sconfitteCasa, overCasa, underCasa = home_res(json_home, home_team, favorita)
+    trasferta, vittorieOspite, sconfitteOspite, underOspite, overOspite = ris_away(json_away, away_team, favorita)
     return favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, overOspite, numero_precedenti
 
 
@@ -330,6 +346,7 @@ def h2h(h2h_json, home_team, away_team, favorita, favoritaNome):
 
     # print("############# RISULTATI PRECEDENTI ##########################")
     # print(res_precedenti_string)
+    # print(h2h_json)
     # print("#######################################")
 
     return res_precedenti_string
@@ -430,15 +447,6 @@ def home_res(home_j, home_team, favorita):
         elif match.away == home_team:
             home_score = str(match.result).split("-")[1]
             other_score = str(match.result).split("-")[0]
-
-        # partite.append({"data": match['time'], 'squadre': match['home']['name'] + '-' + match['away']['name'],
-        #                 'risultato': match['ss']})
-        # if match['home']['name'] == home_team:
-        #     home_score = str(match['ss']).split("-")[0]
-        #     other_score = str(match['ss']).split("-")[1]
-        # elif match['away']['name'] == home_team:
-        #     home_score = str(match['ss']).split("-")[1]
-        #     other_score = str(match['ss']).split("-")[0]
 
         ris = int(home_score) + int(other_score)
 
@@ -580,7 +588,6 @@ def statisticheCasaOspite(favorita, statoFormaUnder, vittorieCasa, vittorieOspit
 
     return res
 
-
 if __name__ == '__main__':
     risultati = openpyxl.Workbook()
     sheet = risultati.active
@@ -606,12 +613,9 @@ if __name__ == '__main__':
     sheet.cell(row=1, column=17).value = 'Punti Squadra Ospite'
 
 
-    
-    
     data_da_analizzare = ""
     date_format = "%Y%m%d"
 
-    print("len", len(sys.argv))
     if len(sys.argv) > 1:
         data_da_analizzare = sys.argv[1]
     else:
@@ -624,7 +628,7 @@ if __name__ == '__main__':
 
     if date_obj.date() < now.date():
         print("Ended")
-        json_of_the_day = getEndedDayEvents(str(data_da_analizzare))
+        json_of_the_day = getEndedDayEvents(str(data_da_analizzare), "it")
     else:
         print("Incoming")
         json_of_the_day = getDayEvents(str(data_da_analizzare))
@@ -662,9 +666,8 @@ if __name__ == '__main__':
         # if match_current_round >= 5:
 
         getOddMatch(match['id'])
-        # favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, vittorieOspite, overOspite, numero_precedenti
         favorita, favoritaNome, statoFormaUnder, res_string, precedenti_string, vittorieCasa, sconfitteCasa, overCasa, underCasa, vittorieOspite, sconfitteOspite, underOspite, overOspite, numero_precedenti = getHistoryForDayEvent(
-            match['id'], home_team, away_team)
+            match['id'], home_team, away_team, match_league_id)
 
         sheet.append(
             [match_teams, match_date, match_hour, match_league, match_nation, favoritaNome, getOddMatch(match['id']),
